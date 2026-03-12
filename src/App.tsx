@@ -8,6 +8,8 @@ import {
   Wallet,
   Bell,
   LogOut,
+  ArrowUpRight,
+  ArrowDownRight,
   ChevronRight,
   Loader2,
   X,
