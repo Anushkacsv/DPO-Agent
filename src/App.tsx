@@ -512,11 +512,6 @@ const App = () => {
                       <h3 className="text-xl font-black text-slate-800 tracking-tight">{invoice.id}</h3>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplier: {invoice.supplierId}</span>
                     </div>
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                      invoice.riskLevel === 'High' ? 'bg-red-100 text-red-600' :
-                      invoice.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-600' :
-                      'bg-emerald-100 text-emerald-600'
-                    }`}>{invoice.riskLevel}</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 mb-5">
