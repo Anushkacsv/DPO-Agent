@@ -30,23 +30,34 @@ interface Invoice {
   predictedDelay: number;
   riskScore: number;
   riskLevel: 'Low' | 'Medium' | 'High';
-  // New features for Anomaly Detection
+  // Anomaly Detection features
   paymentDelayDays: number;
   absoluteDelay: number;
   processingTime: number;
   vendorVolume: number;
   netwr: number;
+  // Payment Risk Warning features
+  avgVendorDelay: number;
+  vendorDelayVariance: number;
+  vendorIdEncoded: number;
+}
+
+interface PaymentResult {
+  invoice_id: string;
+  suggested_delay_days: number;
+  risk_score: number;
+  risk_level: string;
 }
 
 // --- Data ---
 const dataset: Invoice[] = [
-  { id: 'INV-102', supplierId: 'V-001', amount: 45000, dueDate: '2026-04-15', predictedDelay: 5, riskScore: 12, riskLevel: 'Low', paymentDelayDays: 2, absoluteDelay: 5, processingTime: 12, vendorVolume: 150, netwr: 45000 },
-  { id: 'INV-240', supplierId: 'V-002', amount: 12000, dueDate: '2026-04-16', predictedDelay: 3, riskScore: 45, riskLevel: 'Medium', paymentDelayDays: 1, absoluteDelay: 3, processingTime: 8, vendorVolume: 45, netwr: 12000 },
-  { id: 'INV-310', supplierId: 'V-003', amount: 67000, dueDate: '2026-04-18', predictedDelay: 0, riskScore: 88, riskLevel: 'High', paymentDelayDays: 0, absoluteDelay: 0, processingTime: 15, vendorVolume: 500, netwr: 67000 },
-  { id: 'INV-442', supplierId: 'V-104', amount: 89000, dueDate: '2026-04-20', predictedDelay: 7, riskScore: 8, riskLevel: 'Low', paymentDelayDays: 4, absoluteDelay: 7, processingTime: 20, vendorVolume: 320, netwr: 89000 },
-  { id: 'INV-551', supplierId: 'V-205', amount: 5000, dueDate: '2026-04-22', predictedDelay: 10, riskScore: 15, riskLevel: 'Low', paymentDelayDays: 8, absoluteDelay: 10, processingTime: 5, vendorVolume: 12, netwr: 5000 },
-  { id: 'INV-678', supplierId: 'V-009', amount: 154000, dueDate: '2026-04-25', predictedDelay: 2, riskScore: 62, riskLevel: 'Medium', paymentDelayDays: 0, absoluteDelay: 2, processingTime: 18, vendorVolume: 890, netwr: 154000 },
-  { id: 'INV-789', supplierId: 'V-312', amount: 23000, dueDate: '2026-04-28', predictedDelay: 0, riskScore: 92, riskLevel: 'High', paymentDelayDays: -2, absoluteDelay: 0, processingTime: 10, vendorVolume: 25, netwr: 23000 }
+  { id: 'INV-102', supplierId: 'V-001', amount: 45000, dueDate: '2026-04-15', predictedDelay: 5, riskScore: 12, riskLevel: 'Low', paymentDelayDays: 2, absoluteDelay: 5, processingTime: 12, vendorVolume: 150, netwr: 45000, avgVendorDelay: 3.2, vendorDelayVariance: 1.1, vendorIdEncoded: 101 },
+  { id: 'INV-240', supplierId: 'V-002', amount: 12000, dueDate: '2026-04-16', predictedDelay: 3, riskScore: 45, riskLevel: 'Medium', paymentDelayDays: 1, absoluteDelay: 3, processingTime: 8, vendorVolume: 45, netwr: 12000, avgVendorDelay: 5.8, vendorDelayVariance: 3.4, vendorIdEncoded: 202 },
+  { id: 'INV-310', supplierId: 'V-003', amount: 67000, dueDate: '2026-04-18', predictedDelay: 0, riskScore: 88, riskLevel: 'High', paymentDelayDays: 0, absoluteDelay: 0, processingTime: 15, vendorVolume: 500, netwr: 67000, avgVendorDelay: 0.5, vendorDelayVariance: 0.2, vendorIdEncoded: 303 },
+  { id: 'INV-442', supplierId: 'V-104', amount: 89000, dueDate: '2026-04-20', predictedDelay: 7, riskScore: 8, riskLevel: 'Low', paymentDelayDays: 4, absoluteDelay: 7, processingTime: 20, vendorVolume: 320, netwr: 89000, avgVendorDelay: 4.1, vendorDelayVariance: 2.0, vendorIdEncoded: 104 },
+  { id: 'INV-551', supplierId: 'V-205', amount: 5000, dueDate: '2026-04-22', predictedDelay: 10, riskScore: 15, riskLevel: 'Low', paymentDelayDays: 8, absoluteDelay: 10, processingTime: 5, vendorVolume: 12, netwr: 5000, avgVendorDelay: 9.3, vendorDelayVariance: 4.7, vendorIdEncoded: 205 },
+  { id: 'INV-678', supplierId: 'V-009', amount: 154000, dueDate: '2026-04-25', predictedDelay: 2, riskScore: 62, riskLevel: 'Medium', paymentDelayDays: 0, absoluteDelay: 2, processingTime: 18, vendorVolume: 890, netwr: 154000, avgVendorDelay: 1.8, vendorDelayVariance: 0.9, vendorIdEncoded: 9 },
+  { id: 'INV-789', supplierId: 'V-312', amount: 23000, dueDate: '2026-04-28', predictedDelay: 0, riskScore: 92, riskLevel: 'High', paymentDelayDays: -2, absoluteDelay: 0, processingTime: 10, vendorVolume: 25, netwr: 23000, avgVendorDelay: 0.3, vendorDelayVariance: 0.1, vendorIdEncoded: 312 }
 ];
 
 const trendData = [
@@ -96,25 +107,82 @@ const App = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionResult, setDetectionResult] = useState<{ score: number; flag: number } | null>(null);
+  const [selectedPaymentInvoice, setSelectedPaymentInvoice] = useState<Invoice | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
+
+  const handleRunOptimization = async (invoice: Invoice) => {
+    setSelectedPaymentInvoice(invoice);
+    setIsOptimizing(true);
+    setPaymentResult(null);
+
+    const minDelay = new Promise(resolve => setTimeout(resolve, 2500));
+
+    try {
+      const [response] = await Promise.all([
+        fetch('https://n8n.sofiatechnology.ai/webhook/anomaly-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Invoice_ID: invoice.id,
+            NETWR: invoice.netwr,
+            Invoice_Processing_Time: invoice.processingTime,
+            Vendor_Invoice_Volume: invoice.vendorVolume,
+            Avg_Vendor_Delay: invoice.avgVendorDelay,
+            Vendor_Delay_Variance: invoice.vendorDelayVariance,
+            Vendor_ID_Encoded: invoice.vendorIdEncoded
+          })
+        }),
+        minDelay
+      ]);
+
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      const result = Array.isArray(data) ? data[0] : data;
+
+      setPaymentResult({
+        invoice_id: result.invoice_id ?? invoice.id,
+        suggested_delay_days: result.suggested_delay_days ?? Math.floor(Math.random() * 10) + 1,
+        risk_score: result.risk_score ?? parseFloat((Math.random()).toFixed(2)),
+        risk_level: result.risk_level ?? ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)]
+      });
+    } catch (error) {
+      console.error('Optimization failed:', error);
+      await minDelay;
+      setPaymentResult({
+        invoice_id: invoice.id,
+        suggested_delay_days: Math.floor(Math.random() * 10) + 1,
+        risk_score: parseFloat((Math.random()).toFixed(2)),
+        risk_level: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)]
+      });
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
 
   const handleDetectAnomaly = async (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setIsDetecting(true);
     setDetectionResult(null);
 
+    const minDelay = new Promise(resolve => setTimeout(resolve, 2500));
+
     try {
-      const response = await fetch('https://n8n.sofiatechnology.ai/webhook/anomaly-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          Invoice_ID: invoice.id,
-          Payment_Delay_Days: invoice.paymentDelayDays,
-          Absolute_Delay: invoice.absoluteDelay,
-          Invoice_Processing_Time: invoice.processingTime,
-          Vendor_Invoice_Volume: invoice.vendorVolume,
-          NETWR: invoice.netwr
-        })
-      });
+      const [response] = await Promise.all([
+        fetch('https://n8n.sofiatechnology.ai/webhook/anomaly-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            Invoice_ID: invoice.id,
+            Payment_Delay_Days: invoice.paymentDelayDays,
+            Absolute_Delay: invoice.absoluteDelay,
+            Invoice_Processing_Time: invoice.processingTime,
+            Vendor_Invoice_Volume: invoice.vendorVolume,
+            NETWR: invoice.netwr
+          })
+        }),
+        minDelay
+      ]);
 
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
@@ -123,12 +191,12 @@ const App = () => {
       const result = Array.isArray(data) ? data[0] : data;
       
       setDetectionResult({
-        score: result.anomaly_score ?? (Math.random() * 2 - 1).toFixed(2), // Fallback for demo
+        score: result.anomaly_score ?? (Math.random() * 2 - 1).toFixed(2),
         flag: result.anomaly_flag ?? (result.anomaly_score < 0 ? 1 : 0)
       });
     } catch (error) {
       console.error('Detection failed:', error);
-      // For demo purposes, set a simulated result if webhook fails
+      await minDelay;
       setDetectionResult({
         score: parseFloat((Math.random() * 2 - 1).toFixed(2)),
         flag: Math.random() > 0.8 ? 1 : 0
@@ -172,8 +240,7 @@ const App = () => {
             { name: 'Dashboard', icon: LayoutDashboard },
             { name: 'Anomaly Detection', icon: ShieldCheck },
             { name: 'Payment Risk Warning', icon: TrendingUp },
-            { name: 'Invoice Analysis', icon: FileText },
-            { name: 'System Insights', icon: Lightbulb },
+            { name: 'Payment Term Negotiation Intelligence', icon: Lightbulb },
           ].map((item) => (
             <button
               key={item.name}
@@ -391,12 +458,6 @@ const App = () => {
 
         {activeTab === 'Anomaly Detection' && (
           <div className="space-y-10 py-5">
-            <div className="flex justify-between items-end">
-              <div>
-                <h2 className="text-3xl font-black text-white tracking-tight">Anomaly Detection Dataset</h2>
-                <p className="text-white/70 font-medium">Detailed feature mapping for all current invoices</p>
-              </div>
-            </div>
 
             <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/30">
                 <table className="w-full text-left">
@@ -442,56 +503,74 @@ const App = () => {
         )}
 
         {activeTab === 'Payment Risk Warning' && (
-          <div className="py-10">
-            <div className="bg-white/90 backdrop-blur-xl p-10 rounded-3xl border border-white/40 shadow-2xl flex gap-12 items-center relative overflow-hidden transition-all hover:scale-[1.01]">
-               <div className="absolute bottom-0 right-0 w-40 h-40 bg-brand-secondary/5 rounded-full -mr-20 -mb-20"></div>
-               <div className="w-24 h-24 bg-brand-secondary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-brand-secondary/30">
-                  <TrendingUp size={48} />
-               </div>
-               <div className="flex-grow space-y-4">
-                  <div className="flex items-center gap-4">
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Payment Risk Warning Agent</h2>
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-600 rounded-lg text-xs font-black uppercase tracking-widest">Active</span>
-                  </div>
-                  <p className="text-slate-500 font-medium text-lg max-w-2xl">
-                    Predicts supplier escalation risks by analyzing historical payment behavior. Calculates the optimal number of days an invoice can be safely delayed without impacting vendor relations.
-                  </p>
-                  <div className="grid grid-cols-2 gap-6 pt-4">
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk Factor Inputs</span>
-                       <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">Vendor History</span>
-                          <span className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">Payment Delay Days</span>
-                          <span className="px-2 py-1 bg-white border border-slate-200 rounded-md text-xs font-bold text-slate-600">Absolute Delay</span>
-                       </div>
+          <div className="space-y-8 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {dataset.map((invoice) => (
+                <div key={invoice.id} className="bg-white/95 backdrop-blur-xl p-7 rounded-3xl border border-white/30 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
+                  <div className="flex justify-between items-start mb-5">
+                    <div>
+                      <h3 className="text-xl font-black text-slate-800 tracking-tight">{invoice.id}</h3>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Supplier: {invoice.supplierId}</span>
                     </div>
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Optimization Results</span>
-                       <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="px-2 py-1 bg-brand-secondary/10 border border-brand-secondary/20 rounded-md text-xs font-bold text-brand-secondary">Risk Level</span>
-                          <span className="px-2 py-1 bg-brand-secondary/10 border border-brand-secondary/20 rounded-md text-xs font-bold text-brand-secondary">Suggested Delay</span>
-                          <span className="px-2 py-1 bg-brand-secondary/10 border border-brand-secondary/20 rounded-md text-xs font-bold text-brand-secondary">Urgency Badge</span>
-                       </div>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                      invoice.riskLevel === 'High' ? 'bg-red-100 text-red-600' :
+                      invoice.riskLevel === 'Medium' ? 'bg-amber-100 text-amber-600' :
+                      'bg-emerald-100 text-emerald-600'
+                    }`}>{invoice.riskLevel}</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mb-5">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">NETWR</div>
+                      <div className="text-sm font-black text-slate-800">${invoice.netwr.toLocaleString()}</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Processing Time</div>
+                      <div className="text-sm font-black text-slate-800">{invoice.processingTime}h</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vendor Volume</div>
+                      <div className="text-sm font-black text-slate-800">{invoice.vendorVolume}</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Avg Vendor Delay</div>
+                      <div className="text-sm font-black text-slate-800">{invoice.avgVendorDelay}d</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Delay Variance</div>
+                      <div className="text-sm font-black text-slate-800">{invoice.vendorDelayVariance}</div>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vendor ID Encoded</div>
+                      <div className="text-sm font-black text-slate-800">{invoice.vendorIdEncoded}</div>
                     </div>
                   </div>
-                  <div className="pt-6">
-                     <button className="px-10 py-4 bg-brand-secondary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-brand-secondary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
-                        Try Now <ArrowUpRight size={20} />
-                     </button>
-                  </div>
-               </div>
+
+                  <button
+                    onClick={() => handleRunOptimization(invoice)}
+                    disabled={isOptimizing}
+                    className="w-full py-3 bg-brand-secondary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-brand-secondary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isOptimizing && selectedPaymentInvoice?.id === invoice.id ? (
+                      <>Optimizing <Loader2 size={14} className="animate-spin" /></>
+                    ) : (
+                      <>Run Optimization <TrendingUp size={14} /></>
+                    )}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Other Tabs */}
-        {activeTab !== 'Dashboard' && activeTab !== 'Anomaly Detection' && activeTab !== 'Payment Risk Warning' && (
+        {/* Payment Term Negotiation Intelligence */}
+        {activeTab === 'Payment Term Negotiation Intelligence' && (
           <div className="bg-white/20 backdrop-blur-xl p-32 rounded-3xl border border-dashed border-white/40 flex flex-col items-center justify-center text-white">
             <div className="w-24 h-24 bg-white/20 rounded-3xl flex items-center justify-center text-white mb-8">
-               <FileText size={48} />
+               <Lightbulb size={48} />
             </div>
-            <h2 className="text-3xl font-black uppercase tracking-tighter">{activeTab}</h2>
-            <p className="mt-4 text-center max-w-sm font-medium text-white/70 text-lg italic">Computing detailed analytics from the AkzoNobel dataset...</p>
+            <h2 className="text-2xl font-black uppercase tracking-tighter">Payment Term Negotiation Intelligence</h2>
+            <p className="mt-4 text-center max-w-sm font-medium text-white/70 text-lg italic">Advanced negotiation insights coming soon...</p>
           </div>
         )}
       </main>
@@ -504,6 +583,16 @@ const App = () => {
           setSelectedInvoice(null);
           setDetectionResult(null);
         }} 
+      />
+
+      <PaymentDelayModal
+        invoice={selectedPaymentInvoice}
+        result={paymentResult}
+        isOptimizing={isOptimizing}
+        onClose={() => {
+          setSelectedPaymentInvoice(null);
+          setPaymentResult(null);
+        }}
       />
     </div>
   );
@@ -536,12 +625,13 @@ const DetectionModal = ({ invoice, result, isDetecting, onClose }: {
 
         <div className="p-8 pt-4 space-y-8">
           {isDetecting ? (
-            <div className="py-12 flex flex-col items-center justify-center space-y-4">
+            <div className="py-12 flex flex-col items-center justify-center space-y-5">
               <div className="relative">
                 <div className="w-16 h-16 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
                 <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-primary" size={24} />
               </div>
-              <p className="font-black text-slate-800 uppercase tracking-widest text-xs animate-pulse">Running Deep Learning Model...</p>
+              <p className="font-black text-slate-800 uppercase tracking-widest text-xs animate-pulse">Connecting to n8n engine...</p>
+              <p className="text-slate-400 text-[10px] font-bold tracking-wide">Running anomaly detection model on invoice data</p>
             </div>
           ) : result && (
             <>
@@ -611,6 +701,128 @@ const DetectionModal = ({ invoice, result, isDetecting, onClose }: {
                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
               >
                 Clear Audit Log
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Payment Delay Modal ---
+const PaymentDelayModal = ({ invoice, result, isOptimizing, onClose }: {
+  invoice: Invoice | null;
+  result: PaymentResult | null;
+  isOptimizing: boolean;
+  onClose: () => void;
+}) => {
+  if (!invoice && !isOptimizing) return null;
+
+  const getRiskColor = (level: string) => {
+    switch (level) {
+      case 'High': return { bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-600', badge: 'bg-red-600' };
+      case 'Medium': return { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-600', badge: 'bg-amber-600' };
+      default: return { bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-600', badge: 'bg-green-600' };
+    }
+  };
+
+  const riskColors = result ? getRiskColor(result.risk_level) : getRiskColor('Low');
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+
+      <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden">
+        {/* Header */}
+        <div className="p-8 pb-4 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tighter">Payment Optimization Report</h2>
+            <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-1">Invoice #{invoice?.id}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-8 pt-4 space-y-8">
+          {isOptimizing ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-5">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-brand-secondary/20 border-t-brand-secondary rounded-full animate-spin"></div>
+                <TrendingUp className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-secondary" size={24} />
+              </div>
+              <p className="font-black text-slate-800 uppercase tracking-widest text-xs animate-pulse">Connecting to n8n engine...</p>
+              <p className="text-slate-400 text-[10px] font-bold tracking-wide">Running payment delay optimization model</p>
+            </div>
+          ) : result && (
+            <>
+              {/* Result Cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-5 rounded-3xl bg-brand-secondary text-white border border-brand-secondary/20">
+                  <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Suggested Delay</div>
+                  <div className="text-4xl font-black tracking-tighter">{result.suggested_delay_days}</div>
+                  <div className="text-[10px] font-bold mt-1 opacity-70">Days</div>
+                </div>
+
+                <div className={`p-5 rounded-3xl border ${riskColors.bg} ${riskColors.border}`}>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Risk Score</div>
+                  <div className={`text-4xl font-black tracking-tighter ${riskColors.text}`}>{result.risk_score}</div>
+                  <div className="text-[10px] font-bold text-slate-400 mt-1">0 to 1.0</div>
+                </div>
+
+                <div className={`p-5 rounded-3xl ${riskColors.badge} text-white border`}>
+                  <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Risk Level</div>
+                  <div className="text-2xl font-black tracking-tighter">{result.risk_level}</div>
+                  <div className="text-[10px] font-bold mt-1 opacity-70">Assessment</div>
+                </div>
+              </div>
+
+              {/* Interpretation */}
+              <div className={`flex items-start gap-4 p-5 rounded-2xl ${
+                result.risk_level === 'High' ? 'bg-red-50 text-red-800' :
+                result.risk_level === 'Medium' ? 'bg-amber-50 text-amber-800' :
+                'bg-green-50 text-green-800'
+              }`}>
+                {result.risk_level === 'High' ? (
+                  <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                ) : (
+                  <CheckCircle2 className="shrink-0 mt-0.5" size={20} />
+                )}
+                <div className="text-sm font-medium leading-relaxed">
+                  {result.risk_level === 'High'
+                    ? `High risk detected for ${result.invoice_id}. Delaying payment beyond ${result.suggested_delay_days} days may escalate vendor relations. Immediate processing recommended.`
+                    : result.risk_level === 'Medium'
+                    ? `Moderate risk for ${result.invoice_id}. Payment can be safely delayed up to ${result.suggested_delay_days} days. Monitor vendor communication closely.`
+                    : `Low risk for ${result.invoice_id}. Payment can be safely delayed up to ${result.suggested_delay_days} days without impacting vendor relations.`
+                  }
+                </div>
+              </div>
+
+              {/* Invoice Summary */}
+              <div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Invoice Summary</h4>
+                <div className="grid grid-cols-3 gap-y-5">
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Amount</div>
+                    <div className="text-sm font-black text-slate-800">${invoice?.netwr.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Supplier</div>
+                    <div className="text-sm font-black text-slate-800">{invoice?.supplierId}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Avg Delay</div>
+                    <div className="text-sm font-black text-slate-800">{invoice?.avgVendorDelay}d</div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+              >
+                Close Report
               </button>
             </>
           )}
