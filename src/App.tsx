@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -10,9 +10,7 @@ import {
   LogOut,
   ArrowUpRight,
   ArrowDownRight,
-  ChevronRight,
-  Search,
-  Filter
+  ChevronRight
 } from 'lucide-react';
 import { 
   Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
