@@ -192,15 +192,16 @@ const App = () => {
       const result = Array.isArray(data) ? data[0] : data;
       
       setDetectionResult({
-        score: result.anomaly_score ?? (Math.random() * 2 - 1).toFixed(2),
-        flag: result.anomaly_flag ?? (result.anomaly_score < 0 ? 1 : 0)
+        score: result.anomaly_score ?? parseFloat(((invoice.paymentDelayDays - invoice.absoluteDelay) / 5).toFixed(2)),
+        flag: result.anomaly_flag ?? (invoice.paymentDelayDays > 5 ? 1 : 0)
       });
     } catch (error) {
       console.error('Detection failed:', error);
       await minDelay;
+      const score = parseFloat(((invoice.paymentDelayDays - invoice.absoluteDelay) / 5).toFixed(2));
       setDetectionResult({
-        score: parseFloat((Math.random() * 2 - 1).toFixed(2)),
-        flag: Math.random() > 0.8 ? 1 : 0
+        score: score,
+        flag: invoice.paymentDelayDays > 5 ? 1 : 0
       });
     } finally {
       setIsDetecting(false);
