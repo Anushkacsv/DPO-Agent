@@ -142,18 +142,19 @@ const App = () => {
 
       setPaymentResult({
         invoice_id: result.invoice_id ?? invoice.id,
-        suggested_delay_days: result.suggested_delay_days ?? Math.floor(Math.random() * 10) + 1,
-        risk_score: result.risk_score ?? parseFloat((Math.random()).toFixed(2)),
-        risk_level: result.risk_level ?? ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)]
+        suggested_delay_days: result.suggested_delay_days ?? Math.round(invoice.avgVendorDelay + 1),
+        risk_score: result.risk_score ?? parseFloat((invoice.avgVendorDelay / 10).toFixed(2)),
+        risk_level: result.risk_level ?? (invoice.avgVendorDelay > 5 ? 'High' : invoice.avgVendorDelay > 2 ? 'Medium' : 'Low')
       });
     } catch (error) {
       console.error('Optimization failed:', error);
       await minDelay;
+      const riskScore = parseFloat((invoice.avgVendorDelay / 10).toFixed(2));
       setPaymentResult({
         invoice_id: invoice.id,
-        suggested_delay_days: Math.floor(Math.random() * 10) + 1,
-        risk_score: parseFloat((Math.random()).toFixed(2)),
-        risk_level: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)]
+        suggested_delay_days: Math.round(invoice.avgVendorDelay + 1),
+        risk_score: riskScore,
+        risk_level: invoice.avgVendorDelay > 5 ? 'High' : invoice.avgVendorDelay > 2 ? 'Medium' : 'Low'
       });
     } finally {
       setIsOptimizing(false);
