@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -61,7 +61,15 @@ const riskDistData = [
 ];
 
 // --- Components ---
-const KPICard = ({ title, value, trend, icon: Icon, color }: any) => (
+interface KPICardProps {
+  title: string;
+  value: string;
+  trend?: number;
+  icon: React.ElementType;
+  color: string;
+}
+
+const KPICard = ({ title, value, trend, icon: Icon, color }: KPICardProps) => (
   <div className="kpi-card glass">
     <div className="flex justify-between items-start mb-4">
       <div className={`p-3 rounded-xl bg-slate-100 text-[${color}]`} style={{ color: color }}>
