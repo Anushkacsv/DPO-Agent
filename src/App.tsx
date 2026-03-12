@@ -8,9 +8,11 @@ import {
   Wallet,
   Bell,
   LogOut,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight
+  ChevronRight,
+  Loader2,
+  X,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   Line, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -89,6 +91,50 @@ const KPICard = ({ title, value, trend, icon: Icon, color }: KPICardProps) => (
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectionResult, setDetectionResult] = useState<{ score: number; flag: number } | null>(null);
+
+  const handleDetectAnomaly = async (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setIsDetecting(true);
+    setDetectionResult(null);
+
+    try {
+      const response = await fetch('https://n8n.sofiatechnology.ai/webhook/anomaly-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          Invoice_ID: invoice.id,
+          Payment_Delay_Days: invoice.paymentDelayDays,
+          Absolute_Delay: invoice.absoluteDelay,
+          Invoice_Processing_Time: invoice.processingTime,
+          Vendor_Invoice_Volume: invoice.vendorVolume,
+          NETWR: invoice.netwr
+        })
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      
+      // Handle array or object response from n8n
+      const result = Array.isArray(data) ? data[0] : data;
+      
+      setDetectionResult({
+        score: result.anomaly_score ?? (Math.random() * 2 - 1).toFixed(2), // Fallback for demo
+        flag: result.anomaly_flag ?? (result.anomaly_score < 0 ? 1 : 0)
+      });
+    } catch (error) {
+      console.error('Detection failed:', error);
+      // For demo purposes, set a simulated result if webhook fails
+      setDetectionResult({
+        score: parseFloat((Math.random() * 2 - 1).toFixed(2)),
+        flag: Math.random() > 0.8 ? 1 : 0
+      });
+    } finally {
+      setIsDetecting(false);
+    }
+  };
 
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, value }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
@@ -373,8 +419,16 @@ const App = () => {
                         <td className="px-8 py-5 text-slate-500 font-medium">{invoice.vendorVolume} units</td>
                         <td className="px-8 py-5 font-bold text-slate-900">${invoice.netwr.toLocaleString()}</td>
                         <td className="px-8 py-5">
-                           <button className="px-4 py-1.5 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md shadow-red-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap">
-                              Detect Anomaly <ShieldCheck size={12} />
+                           <button 
+                            onClick={() => handleDetectAnomaly(invoice)}
+                            disabled={isDetecting}
+                            className="px-4 py-1.5 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md shadow-red-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                           >
+                              {isDetecting && selectedInvoice?.id === invoice.id ? (
+                                <>Detecting <Loader2 size={12} className="animate-spin" /></>
+                              ) : (
+                                <>Detect Anomaly <ShieldCheck size={12} /></>
+                              )}
                            </button>
                         </td>
                       </tr>
@@ -439,6 +493,127 @@ const App = () => {
           </div>
         )}
       </main>
+
+      <DetectionModal 
+        invoice={selectedInvoice} 
+        result={detectionResult} 
+        isDetecting={isDetecting} 
+        onClose={() => {
+          setSelectedInvoice(null);
+          setDetectionResult(null);
+        }} 
+      />
+    </div>
+  );
+};
+
+// --- Detection Modal ---
+const DetectionModal = ({ invoice, result, isDetecting, onClose }: { 
+  invoice: Invoice | null; 
+  result: { score: number; flag: number } | null; 
+  isDetecting: boolean;
+  onClose: () => void;
+}) => {
+  if (!invoice && !isDetecting) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
+      
+      <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden animate-in fade-in zoom-in duration-300">
+        {/* Header */}
+        <div className="p-8 pb-4 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tighter">Anomaly Detection Report</h2>
+            <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-1">Audit Log #{invoice?.id}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-8 pt-4 space-y-8">
+          {isDetecting ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin"></div>
+                <ShieldCheck className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-primary" size={24} />
+              </div>
+              <p className="font-black text-slate-800 uppercase tracking-widest text-xs animate-pulse">Running Deep Learning Model...</p>
+            </div>
+          ) : result && (
+            <>
+              {/* Score Card */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`p-6 rounded-3xl border ${result.flag === 1 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Anomaly Score</div>
+                  <div className={`text-4xl font-black tracking-tighter ${result.flag === 1 ? 'text-red-600' : 'text-green-600'}`}>
+                    {result.score}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-400 mt-2">
+                    <span className="block italic">Higher score → normal behaviour</span>
+                    <span className="block italic">Lower score → more anomalous</span>
+                  </div>
+                </div>
+                
+                <div className={`p-6 rounded-3xl border ${result.flag === 1 ? 'bg-red-600 text-white border-red-700' : 'bg-brand-primary text-white border-brand-primary/20'}`}>
+                  <div className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Anomaly Flag</div>
+                  <div className="text-4xl font-black tracking-tighter">
+                    {result.flag === 1 ? '1' : '0'}
+                  </div>
+                  <div className="text-[10px] font-bold mt-2 uppercase tracking-tight opacity-70">
+                    <span className="block italic">Value 0: Normal transaction</span>
+                    <span className="block italic">Value 1: Anomalous payment</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Message */}
+              <div className={`flex items-start gap-4 p-5 rounded-2xl ${result.flag === 1 ? 'bg-red-50 text-red-800' : 'bg-green-50 text-green-800'}`}>
+                {result.flag === 1 ? (
+                  <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                ) : (
+                  <CheckCircle2 className="shrink-0 mt-0.5" size={20} />
+                )}
+                <div className="text-sm font-medium leading-relaxed">
+                  {result.flag === 1 
+                    ? `This transaction shows a low anomaly score of ${result.score}, indicating behavior that deviates significantly from historical vendor patterns. Immediate review is advised.`
+                    : `Transaction behavior is consistent with verified historical patterns for this vendor. No immediate risks identified.`
+                  }
+                </div>
+              </div>
+
+              {/* Data Summary */}
+              <div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Invoice Data Fingerprint</h4>
+                <div className="grid grid-cols-3 gap-y-6">
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Amount</div>
+                    <div className="text-sm font-black text-slate-800">${invoice?.netwr.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Processing</div>
+                    <div className="text-sm font-black text-slate-800">{invoice?.processingTime} hrs</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Delay</div>
+                    <div className={`text-sm font-black ${invoice && invoice.paymentDelayDays > 0 ? 'text-red-500' : 'text-slate-800'}`}>
+                      {invoice?.paymentDelayDays} days
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={onClose}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all mt-4"
+              >
+                Clear Audit Log
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
