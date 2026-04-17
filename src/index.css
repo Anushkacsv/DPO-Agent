@@ -1,20 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-primary: #005596; /* Medium Electric Blue */
-  --color-brand-secondary: #008CCA; /* Smooth Blue */
-  --color-brand-accent: #7C3AED;
-  --color-brand-bg: #F8FAFC;
-  --color-risk-low: #10B981;
-  --color-risk-med: #F59E0B;
-  --color-risk-high: #EF4444;
+  --color-brand-primary: #CCA23E;
+  --color-brand-secondary: #000000;
+  --color-brand-accent: #CCA23E;
+  --color-brand-bg: #0a0a0a;
 }
 
 @layer base {
   body {
-    background: linear-gradient(135deg, #5c7fcf 0%, #a16ebf 100%);
+    background: #0a0a0a;
     background-attachment: fixed;
-    color: #1e293b; 
+    color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-family: 'Outfit', sans-serif;
@@ -30,7 +27,7 @@
     right: -10%;
     width: 60%;
     height: 60%;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(204, 162, 62, 0.04);
     border-radius: 80px;
     transform: rotate(-15deg);
     z-index: -1;
@@ -44,7 +41,7 @@
     left: -5%;
     width: 40%;
     height: 40%;
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(204, 162, 62, 0.02);
     border-radius: 60px;
     transform: rotate(20deg);
     z-index: -1;
@@ -53,29 +50,29 @@
 }
 
 .glass {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(0, 0, 0, 0.90);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(204, 162, 62, 0.25);
 }
 
 .kpi-card {
-  @apply bg-white/90 backdrop-blur-sm p-5 sm:p-6 rounded-2xl border border-white/40 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1;
+  @apply bg-black/80 backdrop-blur-sm p-5 sm:p-6 rounded-2xl border border-[#CCA23E]/20 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1;
 }
 
 .table-header {
-  @apply bg-slate-50/50 text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap;
+  @apply bg-black/60 text-[#CCA23E] text-[10px] sm:text-xs font-bold uppercase tracking-wider px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap;
 }
 
 .table-row {
-  @apply border-b border-slate-100/50 last:border-0 hover:bg-white/50 transition-all;
+  @apply border-b border-[#CCA23E]/10 last:border-0 hover:bg-white/5 transition-all;
 }
 
 .sidebar-glass {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(204, 162, 62, 0.2);
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -91,7 +88,7 @@
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index: 40;
@@ -120,15 +117,15 @@
 }
 
 .table-responsive-wrapper::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #000000;
   border-radius: 999px;
 }
 
 .table-responsive-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CCA23E;
   border-radius: 999px;
 }
 
 .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #CCA23E;
 }
