@@ -277,7 +277,7 @@ const App = () => {
             />
           </div>
           <div className="mt-3 sm:mt-4 text-center">
-            <h3 className="text-lg sm:text-xl font-black text-[#CCA23E] tracking-tighter">DPO Agents</h3>
+            <h3 className="text-lg sm:text-xl font-black text-[#CCA23E] tracking-tighter">OFI DPO</h3>
           </div>
         </div>
 
